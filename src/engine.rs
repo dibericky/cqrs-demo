@@ -7,11 +7,11 @@ use crate::{
     events::InventoryEvents,
 };
 
-pub struct Repository {
+pub struct Engine {
     memory_events: HashMap<String, Vec<InventoryEvents>>,
 }
 
-impl Repository {
+impl Engine {
     pub fn new() -> Self {
         Self {
             memory_events: HashMap::new(),
@@ -63,27 +63,27 @@ impl Repository {
     }
 }
 
-impl Default for Repository {
+impl Default for Engine {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[cfg(test)]
-mod test_repository {
+mod test_engine {
     use super::*;
 
     #[test]
     fn execute_cmd_test() {
-        let mut repo = Repository::new();
+        let mut engine = Engine::new();
         let cmd = InventoryCommand::AddProduct {
             sku: "abc".to_string(),
             qty: 3,
         };
-        let result = repo.execute(cmd);
+        let result = engine.execute(cmd);
         assert!(result.is_ok());
 
-        let product = repo.get_product("abc");
+        let product = engine.get_product("abc");
         assert!(product.is_some());
         let product = product.unwrap();
         assert_eq!(product.sku, "abc");
@@ -93,17 +93,17 @@ mod test_repository {
             sku: "abc".to_string(),
             qty: 5,
         };
-        let result = repo.execute(cmd);
+        let result = engine.execute(cmd);
         assert!(result.is_ok());
-        let product = repo.get_product("abc").unwrap();
+        let product = engine.get_product("abc").unwrap();
         assert_eq!(product.sku, "abc");
         assert_eq!(product.qty, 8);
     }
 
     #[test]
     fn get_product_with_no_events_test() {
-        let repo = Repository::new();
-        let product = repo.get_product("abc");
+        let engine = Engine::new();
+        let product = engine.get_product("abc");
         assert!(product.is_none());
     }
 }
