@@ -1,31 +1,25 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
 
 use crate::{
-    aggregate::Aggregate, commands::InventoryCommand, entity::ProductDetail,
-    events::InventoryEvents,
+    aggregate::Aggregate,
+    commands::InventoryCommand,
+    entity::ProductDetail,
+    event_storage::{EventStorage, InMemory},
 };
 
 pub struct Engine {
-    memory_events: HashMap<String, Vec<InventoryEvents>>,
+    memory_events: InMemory,
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(storage: InMemory) -> Self {
         Self {
-            memory_events: HashMap::new(),
+            memory_events: storage,
         }
     }
 
-    fn initialize_memory_events_if_missing(&mut self, sku: &str) {
-        if !self.memory_events.contains_key(sku) {
-            self.memory_events.insert(sku.to_string(), Vec::new());
-        }
-    }
     pub fn execute(&mut self, cmd: InventoryCommand) -> Result<()> {
         let sku = cmd.get_sku();
-        self.initialize_memory_events_if_missing(&sku);
 
         let mut product = self.get_product_or_new(&sku);
 
@@ -36,8 +30,9 @@ impl Engine {
         for event in &new_events {
             product.apply(event);
         }
-        let already_existing_events = self.memory_events.get_mut(&sku).unwrap();
-        already_existing_events.extend(new_events.clone());
+        for new_event in new_events {
+            self.memory_events.add_event(&sku, new_event);
+        }
         Ok(())
     }
 
@@ -48,11 +43,11 @@ impl Engine {
         }
     }
     pub fn get_product(&self, sku: &str) -> Option<ProductDetail> {
-        let product_events = self.memory_events.get(sku);
-        let product = ProductDetail::new(sku.to_owned());
+        let product_events = self.memory_events.get_events(sku);
         match product_events {
             None => None,
             Some(events) => {
+                let product = ProductDetail::new(sku.to_owned());
                 let final_product = events.iter().fold(product, |mut prod, event| {
                     prod.apply(event);
                     prod
@@ -65,7 +60,8 @@ impl Engine {
 
 impl Default for Engine {
     fn default() -> Self {
-        Self::new()
+        let storage = InMemory::new();
+        Self::new(storage)
     }
 }
 
@@ -75,7 +71,8 @@ mod test_engine {
 
     #[test]
     fn execute_cmd_test() {
-        let mut engine = Engine::new();
+        let storage = InMemory::new();
+        let mut engine = Engine::new(storage);
         let cmd = InventoryCommand::AddProduct {
             sku: "abc".to_string(),
             qty: 3,
@@ -102,7 +99,8 @@ mod test_engine {
 
     #[test]
     fn get_product_with_no_events_test() {
-        let engine = Engine::new();
+        let storage = InMemory::new();
+        let engine = Engine::new(storage);
         let product = engine.get_product("abc");
         assert!(product.is_none());
     }

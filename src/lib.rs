@@ -1,5 +1,6 @@
 mod aggregate;
 mod commands;
-mod entity;
-mod events;
 pub mod engine;
+mod entity;
+mod event_storage;
+mod events;
