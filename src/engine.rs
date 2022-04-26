@@ -8,11 +8,11 @@ use crate::{
 };
 
 pub struct Engine {
-    memory_events: InMemory,
+    memory_events: Box<dyn EventStorage>,
 }
 
 impl Engine {
-    pub fn new(storage: InMemory) -> Self {
+    pub fn new(storage: Box<dyn EventStorage>) -> Self {
         Self {
             memory_events: storage,
         }
@@ -61,7 +61,7 @@ impl Engine {
 impl Default for Engine {
     fn default() -> Self {
         let storage = InMemory::new();
-        Self::new(storage)
+        Self::new(Box::new(storage))
     }
 }
 
@@ -72,7 +72,7 @@ mod test_engine {
     #[test]
     fn execute_cmd_test() {
         let storage = InMemory::new();
-        let mut engine = Engine::new(storage);
+        let mut engine = Engine::new(Box::new(storage));
         let cmd = InventoryCommand::AddProduct {
             sku: "abc".to_string(),
             qty: 3,
@@ -100,7 +100,7 @@ mod test_engine {
     #[test]
     fn get_product_with_no_events_test() {
         let storage = InMemory::new();
-        let engine = Engine::new(storage);
+        let engine = Engine::new(Box::new(storage));
         let product = engine.get_product("abc");
         assert!(product.is_none());
     }
