@@ -32,19 +32,20 @@ impl Engine {
             product.apply(event);
         }
         for new_event in new_events {
-            self.memory_events.add_event(&sku, new_event);
+            self.memory_events.add_event(&sku, new_event).expect("Unable to insert event");
         }
         Ok(())
     }
 
-    fn get_product_or_new(&self, sku: &str) -> ProductDetail {
+    fn get_product_or_new(&mut self, sku: &str) -> ProductDetail {
         match self.get_product(sku) {
             None => ProductDetail::new(sku.to_string()),
             Some(p) => p,
         }
     }
-    pub fn get_product(&self, sku: &str) -> Option<ProductDetail> {
-        let product_events = self.memory_events.get_events(sku);
+    pub fn get_product(&mut self, sku: &str) -> Option<ProductDetail> {
+        let product_events = self.memory_events.get_events(sku)
+            .expect("Unable to get events");
         match product_events {
             None => None,
             Some(events) => {
@@ -106,7 +107,7 @@ mod test_engine {
     #[test]
     fn get_product_with_no_events_test() {
         let storage = InMemory::new();
-        let engine = Engine::new(Box::new(storage));
+        let mut engine = Engine::new(Box::new(storage));
         let product = engine.get_product("abc");
         assert!(product.is_none());
     }

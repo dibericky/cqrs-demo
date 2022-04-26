@@ -1,7 +1,8 @@
 mod aggregate;
-mod commands;
+pub mod commands;
 pub mod engine;
 mod entity;
-mod event_storage;
+pub mod event_storage;
 mod events;
-mod inmemory_storage;
+pub mod postgres_storage;
+pub mod inmemory_storage;
