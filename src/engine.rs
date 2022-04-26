@@ -1,10 +1,8 @@
-use anyhow::Result;
+use anyhow::{Error, Result};
 
 use crate::{
-    aggregate::Aggregate,
-    commands::InventoryCommand,
-    entity::ProductDetail,
-    event_storage::{EventStorage, InMemory},
+    aggregate::Aggregate, commands::InventoryCommand, entity::ProductDetail,
+    event_storage::EventStorage,
 };
 
 pub struct Engine {
@@ -24,7 +22,10 @@ impl Engine {
         let mut product = self.get_product_or_new(&sku);
 
         let new_events = match product.run_command(cmd) {
-            Err(_) => return Err(anyhow::Error::msg("Unable to run command")),
+            Err(msg) => {
+                let err_msg = format!("Unable to run command: {}", msg);
+                return Err(Error::msg(err_msg));
+            }
             Ok(events) => events,
         };
         for event in &new_events {
@@ -58,15 +59,10 @@ impl Engine {
     }
 }
 
-impl Default for Engine {
-    fn default() -> Self {
-        let storage = InMemory::new();
-        Self::new(Box::new(storage))
-    }
-}
-
 #[cfg(test)]
 mod test_engine {
+    use crate::inmemory_storage::InMemory;
+
     use super::*;
 
     #[test]
@@ -95,6 +91,16 @@ mod test_engine {
         let product = engine.get_product("abc").unwrap();
         assert_eq!(product.sku, "abc");
         assert_eq!(product.qty, 8);
+
+        let cmd = InventoryCommand::SellProduct {
+            sku: "abc".to_string(),
+            qty: 2,
+        };
+        let result = engine.execute(cmd);
+        assert!(result.is_ok());
+        let product = engine.get_product("abc").unwrap();
+        assert_eq!(product.sku, "abc");
+        assert_eq!(product.qty, 6);
     }
 
     #[test]
@@ -103,5 +109,31 @@ mod test_engine {
         let engine = Engine::new(Box::new(storage));
         let product = engine.get_product("abc");
         assert!(product.is_none());
+    }
+
+    #[test]
+    fn sell_unavailable_product() {
+        let storage = InMemory::new();
+        let mut engine = Engine::new(Box::new(storage));
+        let cmd = InventoryCommand::AddProduct {
+            sku: "abc".to_string(),
+            qty: 3,
+        };
+        let _ = engine.execute(cmd);
+
+        let product = engine.get_product("abc").unwrap();
+        assert_eq!(product.sku, "abc");
+        assert_eq!(product.qty, 3);
+
+        let cmd = InventoryCommand::SellProduct {
+            sku: "abc".to_string(),
+            qty: 10,
+        };
+        let result = engine.execute(cmd);
+        assert!(result.is_err());
+
+        let product = engine.get_product("abc").unwrap();
+        assert_eq!(product.sku, "abc");
+        assert_eq!(product.qty, 3);
     }
 }

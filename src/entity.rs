@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Error, Result};
 
 use crate::{aggregate::Aggregate, commands::InventoryCommand, events::InventoryEvents};
 
@@ -21,6 +21,12 @@ impl Aggregate for ProductDetail {
                 Ok(events)
             }
             InventoryCommand::SellProduct { sku, qty } => {
+                if self.qty - qty < 0 {
+                    return Err(Error::msg(format!(
+                        "Not enough quantity for product {}",
+                        sku
+                    )));
+                }
                 let events = vec![InventoryEvents::ProductSold { sku, qty }];
                 Ok(events)
             }
