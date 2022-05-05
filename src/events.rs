@@ -1,7 +1,9 @@
-#[derive(Clone, Debug)]
+use serde::Serialize;
+
+#[derive(Clone, Debug, Serialize)]
 pub enum InventoryEvents {
-    ProductSold { sku: String, qty: i32 },
-    ProductAdded { sku: String, qty: i32 },
+    ProductSold { sku: String, qty: i32, id: Option<i32> },
+    ProductAdded { sku: String, qty: i32, id: Option<i32> },
 }
 
 impl InventoryEvents {

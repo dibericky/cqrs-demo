@@ -42,12 +42,12 @@ impl EventStorage for PostgresStorage {
     }
 
     fn get_events(&mut self, key: &str) -> Result<Option<Vec<InventoryEvents>>> {
-        let rows = self.client.query("SELECT event_type_id, sku, qty FROM inventory_events WHERE sku = $1", &[&key])?;
+        let rows = self.client.query("SELECT event_type_id, sku, qty, event_id FROM inventory_events WHERE sku = $1 ORDER BY event_id ASC", &[&key])?;
         let events = rows
             .iter()
             .map(|item| match item.get(0) {
-                "product_sold" => Ok(InventoryEvents::ProductSold { sku: item.get(1), qty: item.get(2) }),
-                "product_added" => Ok(InventoryEvents::ProductAdded { sku: item.get(1), qty: item.get(2) }),
+                "product_sold" => Ok(InventoryEvents::ProductSold { id: item.get(3), sku: item.get(1), qty: item.get(2) }),
+                "product_added" => Ok(InventoryEvents::ProductAdded { id: item.get(3), sku: item.get(1), qty: item.get(2) }),
                 _ => {
                     let sku : String = item.get(0);
                     return Err(Error::msg(format!("Unknown event_type_id {}", sku)));

@@ -1,8 +1,9 @@
 use anyhow::{Error, Result};
+use serde::Serialize;
 
 use crate::{aggregate::Aggregate, commands::InventoryCommand, events::InventoryEvents};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ProductDetail {
     pub sku: String,
     pub qty: i32,
@@ -18,7 +19,7 @@ impl Aggregate for ProductDetail {
     fn run_command(&self, cmd: InventoryCommand) -> Result<Vec<InventoryEvents>> {
         match cmd {
             InventoryCommand::AddProduct { sku, qty } => {
-                let events = vec![InventoryEvents::ProductAdded { sku, qty }];
+                let events = vec![InventoryEvents::ProductAdded { sku, qty, id: None }];
                 Ok(events)
             }
             InventoryCommand::SellProduct { sku, qty } => {
@@ -28,7 +29,7 @@ impl Aggregate for ProductDetail {
                         sku
                     )));
                 }
-                let events = vec![InventoryEvents::ProductSold { sku, qty }];
+                let events = vec![InventoryEvents::ProductSold { sku, qty, id: None }];
                 Ok(events)
             }
         }
