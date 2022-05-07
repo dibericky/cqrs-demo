@@ -1,4 +1,4 @@
-use cqrs_demo::routes::register_routes;
+use cqrs_demo::write::routes::register_routes;
 use dotenv::dotenv;
 
 #[tokio::main]

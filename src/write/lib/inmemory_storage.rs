@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 
-use crate::{event_storage::EventStorage, events::InventoryEvents};
+use crate::events::InventoryEvents;
+
+use super::event_storage::EventStorage;
 
 pub struct InMemory {
     events: HashMap<String, Vec<InventoryEvents>>,

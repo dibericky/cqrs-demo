@@ -1,7 +1,9 @@
 use anyhow::{Error, Result};
 use serde::Serialize;
 
-use crate::{aggregate::Aggregate, commands::InventoryCommand, events::InventoryEvents};
+use crate::events::InventoryEvents;
+
+use super::{aggregate::Aggregate, commands::InventoryCommand};
 
 #[derive(Debug, Serialize)]
 pub struct ProductDetail {
