@@ -32,7 +32,9 @@ impl Engine {
             product.apply(event);
         }
         for new_event in new_events {
-            self.memory_events.add_event(&sku, new_event).expect("Unable to insert event");
+            self.memory_events
+                .add_event(&sku, new_event)
+                .expect("Unable to insert event");
         }
         Ok(())
     }
@@ -44,7 +46,9 @@ impl Engine {
         }
     }
     pub fn get_product(&mut self, sku: &str) -> Option<ProductDetail> {
-        let product_events = self.memory_events.get_events(sku)
+        let product_events = self
+            .memory_events
+            .get_events(sku)
             .expect("Unable to get events");
         match product_events {
             None => None,

@@ -23,7 +23,7 @@ impl Default for InMemory {
 }
 
 impl EventStorage for InMemory {
-    fn add_event(&mut self, key: &str, event: InventoryEvents) -> Result<()>{
+    fn add_event(&mut self, key: &str, event: InventoryEvents) -> Result<()> {
         if !self.exists(key).unwrap() {
             self.events.insert(key.to_string(), Vec::new());
         }

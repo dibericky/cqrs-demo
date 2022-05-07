@@ -1,22 +1,19 @@
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use postgres::{Client, NoTls};
 
-use crate::{event_storage::EventStorage, events::InventoryEvents};
+use crate::{engine::Engine, envs::get_env, event_storage::EventStorage, events::InventoryEvents};
 
 pub struct PostgresStorage {
-    pub client: Client
+    pub client: Client,
 }
 
 impl PostgresStorage {
-    pub fn new (connstr: &str) -> Result<Self> {
-        let client = Client::connect(connstr, NoTls)
-            .map_err(anyhow::Error::msg)?;
-        Ok(Self{
-            client
-        })
+    pub fn new(connstr: &str) -> Result<Self> {
+        let client = Client::connect(connstr, NoTls).map_err(anyhow::Error::msg)?;
+        Ok(Self { client })
     }
 
-    pub fn close (self) -> Result<()> {
+    pub fn close(self) -> Result<()> {
         self.client.close()?;
         Ok(())
     }
@@ -37,26 +34,41 @@ impl EventStorage for PostgresStorage {
     }
 
     fn exists(&mut self, key: &str) -> Result<bool> {
-        let res = self.client.query("SELECT event_id FROM inventory_events WHERE sku = $1 LIMIT 1", &[&key])?;
-        Ok(res.len() > 0)
+        let res = self.client.query(
+            "SELECT event_id FROM inventory_events WHERE sku = $1 LIMIT 1",
+            &[&key],
+        )?;
+        Ok(!res.is_empty())
     }
 
     fn get_events(&mut self, key: &str) -> Result<Option<Vec<InventoryEvents>>> {
-        let rows = self.client.query("SELECT event_type_id, sku, qty FROM inventory_events WHERE sku = $1", &[&key])?;
+        let rows = self.client.query("SELECT event_type_id, sku, qty, event_id FROM inventory_events WHERE sku = $1 ORDER BY event_id ASC", &[&key])?;
         let events = rows
             .iter()
             .map(|item| match item.get(0) {
-                "product_sold" => Ok(InventoryEvents::ProductSold { sku: item.get(1), qty: item.get(2) }),
-                "product_added" => Ok(InventoryEvents::ProductAdded { sku: item.get(1), qty: item.get(2) }),
+                "product_sold" => Ok(InventoryEvents::ProductSold {
+                    sku: item.get(1),
+                    qty: item.get(2),
+                }),
+                "product_added" => Ok(InventoryEvents::ProductAdded {
+                    sku: item.get(1),
+                    qty: item.get(2),
+                }),
                 _ => {
-                    let sku : String = item.get(0);
+                    let sku: String = item.get(0);
                     return Err(Error::msg(format!("Unknown event_type_id {}", sku)));
                 }
             })
             .collect::<Result<Vec<InventoryEvents>>>()?;
-        if events.len() == 0 {
+        if events.is_empty() {
             return Ok(None);
         }
         Ok(Some(events))
     }
+}
+
+pub fn get_postgres_engine() -> Engine {
+    let connstr = get_env("POSTGRES_CONN_STRING");
+    let postgres = PostgresStorage::new(&connstr).expect("Unable to connect to event storage");
+    Engine::new(Box::new(postgres))
 }
