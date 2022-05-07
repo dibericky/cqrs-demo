@@ -38,7 +38,7 @@ impl EventStorage for PostgresStorage {
             "SELECT event_id FROM inventory_events WHERE sku = $1 LIMIT 1",
             &[&key],
         )?;
-        Ok(res.len() > 0)
+        Ok(!res.is_empty())
     }
 
     fn get_events(&mut self, key: &str) -> Result<Option<Vec<InventoryEvents>>> {
@@ -62,7 +62,7 @@ impl EventStorage for PostgresStorage {
                 }
             })
             .collect::<Result<Vec<InventoryEvents>>>()?;
-        if events.len() == 0 {
+        if events.is_empty() {
             return Ok(None);
         }
         Ok(Some(events))
