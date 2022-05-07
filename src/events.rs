@@ -4,13 +4,11 @@ use serde::Serialize;
 pub enum InventoryEvents {
     ProductSold {
         sku: String,
-        qty: i32,
-        id: Option<i32>,
+        qty: i32
     },
     ProductAdded {
         sku: String,
-        qty: i32,
-        id: Option<i32>,
+        qty: i32
     },
 }
 

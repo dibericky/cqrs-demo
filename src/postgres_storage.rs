@@ -47,12 +47,10 @@ impl EventStorage for PostgresStorage {
             .iter()
             .map(|item| match item.get(0) {
                 "product_sold" => Ok(InventoryEvents::ProductSold {
-                    id: item.get(3),
                     sku: item.get(1),
                     qty: item.get(2),
                 }),
                 "product_added" => Ok(InventoryEvents::ProductAdded {
-                    id: item.get(3),
                     sku: item.get(1),
                     qty: item.get(2),
                 }),

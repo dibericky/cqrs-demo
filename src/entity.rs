@@ -19,7 +19,7 @@ impl Aggregate for ProductDetail {
     fn run_command(&self, cmd: InventoryCommand) -> Result<Vec<InventoryEvents>> {
         match cmd {
             InventoryCommand::AddProduct { sku, qty } => {
-                let events = vec![InventoryEvents::ProductAdded { sku, qty, id: None }];
+                let events = vec![InventoryEvents::ProductAdded { sku, qty }];
                 Ok(events)
             }
             InventoryCommand::SellProduct { sku, qty } => {
@@ -29,7 +29,7 @@ impl Aggregate for ProductDetail {
                         sku
                     )));
                 }
-                let events = vec![InventoryEvents::ProductSold { sku, qty, id: None }];
+                let events = vec![InventoryEvents::ProductSold { sku, qty }];
                 Ok(events)
             }
         }

@@ -2,7 +2,7 @@ use anyhow::{Error, Result};
 
 use crate::{
     aggregate::Aggregate, commands::InventoryCommand, entity::ProductDetail,
-    event_storage::EventStorage, events::InventoryEvents,
+    event_storage::EventStorage,
 };
 
 pub struct Engine {
@@ -61,10 +61,6 @@ impl Engine {
                 Some(final_product)
             }
         }
-    }
-
-    pub fn get_events(&mut self, sku: &str) -> Result<Option<Vec<InventoryEvents>>> {
-        self.memory_events.get_events(sku)
     }
 }
 
