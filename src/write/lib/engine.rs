@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 
-use crate::{
+use super::{
     aggregate::Aggregate, commands::InventoryCommand, entity::ProductDetail,
     event_storage::EventStorage,
 };
@@ -66,7 +66,7 @@ impl Engine {
 
 #[cfg(test)]
 mod test_engine {
-    use crate::inmemory_storage::InMemory;
+    use crate::write::lib::inmemory_storage::InMemory;
 
     use super::*;
 

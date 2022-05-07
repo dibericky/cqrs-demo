@@ -1,6 +1,8 @@
 use anyhow::Result;
 
-use crate::{commands::InventoryCommand, events::InventoryEvents};
+use crate::events::InventoryEvents;
+
+use super::commands::InventoryCommand;
 
 pub trait Aggregate {
     fn aggregate_type() -> String;

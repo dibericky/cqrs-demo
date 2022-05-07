@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use tide::{Request, Response, Server};
 
-use crate::{commands::InventoryCommand, postgres_storage::get_postgres_engine};
+use super::lib::{postgres_storage::get_postgres_engine, commands::InventoryCommand};
+
 
 #[derive(Deserialize)]
 struct PostSkuBodyRequest {

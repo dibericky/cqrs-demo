@@ -1,7 +1,9 @@
 use anyhow::{Error, Result};
 use postgres::{Client, NoTls};
 
-use crate::{engine::Engine, envs::get_env, event_storage::EventStorage, events::InventoryEvents};
+use crate::{envs::get_env, events::InventoryEvents};
+
+use super::{engine::Engine, event_storage::EventStorage};
 
 pub struct PostgresStorage {
     pub client: Client,
@@ -11,11 +13,6 @@ impl PostgresStorage {
     pub fn new(connstr: &str) -> Result<Self> {
         let client = Client::connect(connstr, NoTls).map_err(anyhow::Error::msg)?;
         Ok(Self { client })
-    }
-
-    pub fn close(self) -> Result<()> {
-        self.client.close()?;
-        Ok(())
     }
 }
 
