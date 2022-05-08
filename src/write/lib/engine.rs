@@ -45,6 +45,7 @@ impl Engine {
             Some(p) => p,
         }
     }
+
     pub fn get_product(&mut self, sku: &str) -> Option<ProductDetail> {
         let product_events = self
             .memory_events
