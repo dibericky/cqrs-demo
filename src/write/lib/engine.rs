@@ -2,17 +2,19 @@ use anyhow::{Error, Result};
 
 use super::{
     aggregate::Aggregate, commands::InventoryCommand, entity::ProductDetail,
-    event_storage::EventStorage,
+    event_storage::EventStorage, notifier::Notifier,
 };
 
 pub struct Engine {
     memory_events: Box<dyn EventStorage>,
+    notifier: Option<Box<dyn Notifier>>,
 }
 
 impl Engine {
-    pub fn new(storage: Box<dyn EventStorage>) -> Self {
+    pub fn new(storage: Box<dyn EventStorage>, notifier: Option<Box<dyn Notifier>>) -> Self {
         Self {
             memory_events: storage,
+            notifier,
         }
     }
 
@@ -32,9 +34,14 @@ impl Engine {
             product.apply(event);
         }
         for new_event in new_events {
+            let event_id = new_event.get_id();
             self.memory_events
                 .add_event(&sku, new_event)
                 .expect("Unable to insert event");
+            if let Some(notifier) = &self.notifier {
+                notifier.notify_event(&sku, &event_id)
+                    .unwrap_or_else(|_| println!("Failed to send notify"));
+            }
         }
         Ok(())
     }
@@ -67,14 +74,18 @@ impl Engine {
 
 #[cfg(test)]
 mod test_engine {
-    use crate::write::lib::inmemory_storage::InMemory;
+    use std::thread;
+
+    use crossbeam_channel::{unbounded, Receiver, Sender};
+
+    use crate::write::lib::{inmemory_storage::InMemory, notifier::MemoryNotifier};
 
     use super::*;
 
     #[test]
     fn execute_cmd_test() {
         let storage = InMemory::new();
-        let mut engine = Engine::new(Box::new(storage));
+        let mut engine = Engine::new(Box::new(storage), None);
         let cmd = InventoryCommand::AddProduct {
             sku: "abc".to_string(),
             qty: 3,
@@ -112,7 +123,7 @@ mod test_engine {
     #[test]
     fn get_product_with_no_events_test() {
         let storage = InMemory::new();
-        let mut engine = Engine::new(Box::new(storage));
+        let mut engine = Engine::new(Box::new(storage), None);
         let product = engine.get_product("abc");
         assert!(product.is_none());
     }
@@ -120,7 +131,7 @@ mod test_engine {
     #[test]
     fn sell_unavailable_product() {
         let storage = InMemory::new();
-        let mut engine = Engine::new(Box::new(storage));
+        let mut engine = Engine::new(Box::new(storage), None);
         let cmd = InventoryCommand::AddProduct {
             sku: "abc".to_string(),
             qty: 3,
@@ -141,5 +152,59 @@ mod test_engine {
         let product = engine.get_product("abc").unwrap();
         assert_eq!(product.sku, "abc");
         assert_eq!(product.qty, 3);
+    }
+
+    #[test]
+    fn execute_cmd_with_notification_test() {
+        let storage = InMemory::new();
+        let (tx_memory, rx): (Sender<(String, String)>, Receiver<(String, String)>) = unbounded();
+
+        let t2 = thread::spawn(move || {
+            let mut notifications = Vec::new();
+            while let Ok(message) = rx.recv() {
+                notifications.push(message);
+            }
+            notifications
+        });
+
+        let memory_notification = MemoryNotifier { sender: tx_memory };
+
+        let mut engine = Engine::new(Box::new(storage), Some(Box::new(memory_notification)));
+
+        let cmd = InventoryCommand::AddProduct {
+            sku: "abc".to_string(),
+            qty: 5,
+        };
+        let result = engine.execute(cmd);
+        assert!(result.is_ok());
+
+        let cmd = InventoryCommand::SellProduct {
+            sku: "abc".to_string(),
+            qty: 2,
+        };
+        let result = engine.execute(cmd);
+        if let Err(err) = result {
+            println!("1 {}", err)
+        }
+
+        let cmd = InventoryCommand::SellProduct {
+            sku: "abc".to_string(),
+            qty: 1,
+        };
+        let result = engine.execute(cmd);
+        if let Err(err) = result {
+            println!("2 {}", err)
+        }
+
+        drop(engine);
+        let notifications = t2.join().unwrap();
+        assert_eq!(
+            notifications,
+            vec![
+                ("abc".to_owned(), "product_added".to_owned()),
+                ("abc".to_owned(), "product_sold".to_owned()),
+                ("abc".to_owned(), "product_sold".to_owned()),
+            ]
+        );
     }
 }

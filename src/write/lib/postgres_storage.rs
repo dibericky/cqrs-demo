@@ -67,5 +67,5 @@ impl EventStorage for PostgresStorage {
 pub fn get_postgres_engine() -> Engine {
     let connstr = get_env("POSTGRES_CONN_STRING");
     let postgres = PostgresStorage::new(&connstr).expect("Unable to connect to event storage");
-    Engine::new(Box::new(postgres))
+    Engine::new(Box::new(postgres), None)
 }
