@@ -1,8 +1,7 @@
 use serde::Deserialize;
 use tide::{Request, Response, Server};
 
-use super::lib::{postgres_storage::get_postgres_engine, commands::InventoryCommand};
-
+use super::lib::{commands::InventoryCommand, postgres_storage::get_postgres_engine};
 
 #[derive(Deserialize)]
 struct PostSkuBodyRequest {
@@ -32,6 +31,6 @@ async fn post_sku(mut req: Request<()>) -> tide::Result {
     Ok(res)
 }
 
-pub fn register_routes(app: &mut Server<()>) {
+pub fn register(app: &mut Server<()>) {
     app.at("/products/:sku").post(post_sku);
 }
